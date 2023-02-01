@@ -1,0 +1,20 @@
+.wrapper {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   height: 100vh;
+   & .rounder {
+      border: 1pt solid #ccc;
+      border-radius: 8px;
+      padding: 20px 120px;
+      text-align: center;
+      & h1 {
+         font-size: 16rem;
+      }
+      & .link {
+         min-width: auto;
+         padding: 0px;
+         color: #c00;
+      }
+   }
+}
