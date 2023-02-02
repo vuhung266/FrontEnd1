@@ -1,43 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Row, Col, Space, Table, Tooltip, Select, Modal, message, Form } from 'antd';
-import { EyeOutlined, PlusCircleOutlined } from '@ant-design/icons';
-import http from '../../../utils/http'
-import { addMenu, getMenu, updateMenu } from "../../../apis/menus.api";
+import { EditOutlined, PlusCircleOutlined } from '@ant-design/icons';
 import ShowConfirmResetPass from './ResetPass';
 import ShowConfirmLockUser from './LockUser';
 import { useQuery, useMutation } from 'react-query';
-
+import * as menuServices from '~/services/menuService';
+import axios from 'axios';
 const QuanLyDanhMuc = () => {
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [messageApi, contextHolder] = message.useMessage();
     const [form] = Form.useForm();
+    const [sendRequest, setSendRequest] = useState(false);
+    const [dataMenu, setDataMenu] = useState([]);
+    const [initialValues, setInitialValues] = useState([]);
+    useEffect(() => {
+        if (sendRequest) {
+            setSendRequest(false);
+        }
+        const fetchApi = async () => {
+            const result = await menuServices.getMenu();
+            const resultArray = result.map((elm) => ({
+                key: elm.id,
+                value: elm.id,
+                label: elm.name,
+                name: elm.name,
+                pid: elm.pid,
+                order: elm.order,
+            }));
+            setDataMenu(resultArray);
+        };
+        fetchApi();
+    }, [sendRequest]);
+
     const showModal = () => {
         setIsModalOpen(true);
     };
-    const addStudentMutation = useMutation({
-        mutationFn: (body: FormStateType) => {
-            return addMenu(body);
-        },
-    });
     const onFinish = (values) => {
-        console.log('Received values of form: ', values);
-
-        addStudentMutation.mutate(values, {
-            onSuccess: () => {
-                setIsModalOpen(false);
-                setIsModalOpen(false);
-                messageApi.open({
-                    type: 'success',
-                    content: 'Thêm mới thành công',
-                });
-            },
-        });
+        createPost(values); //reload data
+        setSendRequest(true);
+        setIsModalOpen(false);
+        setIsModalOpen(false);
+		sendEditData(values)
+		console.log('Received values of form: ', values);
     };
-
+	const sendEditData = async (e) => {
+        const result = await menuServices.editMenu(e); console.log(result)
+    };
     const handleCancel = () => {
         setIsModalOpen(false);
+    };
+	useEffect(() => {
+		form.setFieldsValue(initialValues)
+	   }, [form, initialValues])
+    const openEditModal = (e) => {
+       
+		setInitialValues(e);  console.log(initialValues);
+		setIsModalOpen(true);
+		setSendRequest(true);
     };
     const columns = [
         {
@@ -60,14 +81,8 @@ const QuanLyDanhMuc = () => {
             render: (e) => (
                 <Space direction="vertical">
                     <Space wrap>
-                        <Tooltip title="Xem chi tiết">
-                            <Button
-                                shape="circle"
-                                icon={<EyeOutlined />}
-                                onClick={() => {
-                                    navigate(`/quan-ly-he-thong/quan-ly-nguoi-dung/chi-tiet/${e.email}`);
-                                }}
-                            />
+                        <Tooltip title="Sửa Danh mục">
+                            <Button shape="circle" icon={<EditOutlined />} onClick={() => openEditModal(e)} />
                         </Tooltip>
                         <ShowConfirmLockUser data={e} />
                         <ShowConfirmResetPass type="icononly" data={e} />
@@ -77,18 +92,22 @@ const QuanLyDanhMuc = () => {
         },
     ];
 
-    const { isLoading, error, data } = useQuery('repoData', () =>
-        fetch('http://localhost:4000/menus').then((res) => res.json()),
-    );
-    if (isLoading) return <div>Loading...</div>;
-    if (error) return <div>An error has occurred</div>;
+    // const { isLoading, error, data } = useQuery('repoData', () =>
+    //     fetch('http://localhost:4000/menus').then((res) => res.json()),
+    // );
+    // const updatedData = data?.map((itemdata) => ({ ...itemdata, key: itemdata.id })) | [];
 
-    console.log(data);
-    const dataPid = data.map(({ key, name }) => ({
-        value: key,
-        label: name,
-    }));
+    // const dataPid = data?.map(({ id, name }) => ({
+    // 	value: id,
+    // 	label: name,
+    // }));
+
     const onCreate = (values) => onFinish(values);
+    async function createPost(data) {
+        const response = await axios.post('http://localhost:4000/menus', data);
+        console.log(response.data);
+    }
+
     return (
         <>
             {contextHolder}
@@ -101,12 +120,13 @@ const QuanLyDanhMuc = () => {
                             </Button>
                         </Col>
                         <Col span={24}>
-                            <Table columns={columns} dataSource={data} pagination={{ position: 'bottomRight' }} />
+                            <Table columns={columns} dataSource={dataMenu} pagination={{ position: 'bottomRight' }} />
                         </Col>
                     </Row>
                 </Col>
             </Row>
             <Modal
+				forceRender 
                 open={isModalOpen}
                 maskClosable={true}
                 onOk={() => {
@@ -129,7 +149,7 @@ const QuanLyDanhMuc = () => {
                             form={form}
                             layout="vertical"
                             name="form_in_modal"
-                            initialValues={{ modifier: 'public' }}
+                            initialValues={initialValues}
                             labelCol={{ span: 8 }}
                             wrapperCol={{ span: 16 }}
                             labelAlign="left"
@@ -141,7 +161,7 @@ const QuanLyDanhMuc = () => {
                                 <Input />
                             </Form.Item>
                             <Form.Item label="Thư mục cha" name="pid" required={true}>
-                                <Select showSearch allowClear options={dataPid} />
+                                <Select showSearch allowClear options={dataMenu} />
                             </Form.Item>
                         </Form>
                     </Col>
