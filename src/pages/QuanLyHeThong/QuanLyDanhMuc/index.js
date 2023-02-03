@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Row, Col, Space, Table, Tooltip, Select, Modal, message, Form } from 'antd';
-import { EditOutlined, PlusCircleOutlined } from '@ant-design/icons';
+import { Button, Input, Row, Col, Space, Table, Tooltip, Select, Modal, message, Form, Popconfirm } from 'antd';
+import { EditOutlined, DeleteOutlined, PlusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import ShowConfirmResetPass from './ResetPass';
 import ShowConfirmLockUser from './LockUser';
 import { useQuery, useMutation } from 'react-query';
@@ -12,9 +12,15 @@ const QuanLyDanhMuc = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [messageApi, contextHolder] = message.useMessage();
     const [form] = Form.useForm();
+    const [isAddNew, setIsAddNew] = useState(false);
     const [sendRequest, setSendRequest] = useState(false);
     const [dataMenu, setDataMenu] = useState([]);
+    const [dataPids, setDataPids] = useState([]);
     const [initialValues, setInitialValues] = useState([]);
+    const [sortedArray, setSortedArray] = useState([]);
+
+	const [items, setItems] = useState([])
+
     useEffect(() => {
         if (sendRequest) {
             setSendRequest(false);
@@ -34,33 +40,53 @@ const QuanLyDanhMuc = () => {
         fetchApi();
     }, [sendRequest]);
 
-    const showModal = () => {
-        setIsModalOpen(true);
-    };
-    const onFinish = (values) => {
-        createPost(values); //reload data
+    const onCreate = (values) => {
+        if (isAddNew) {
+            createPost(values);
+            setIsAddNew(false);
+        } else {
+            sendEditData(values);
+        }
         setSendRequest(true);
         setIsModalOpen(false);
-        setIsModalOpen(false);
-		sendEditData(values)
-		console.log('Received values of form: ', values);
     };
-	const sendEditData = async (e) => {
-        const result = await menuServices.editMenu(e); console.log(result)
+
+    const sendEditData = async (e) => {
+        const result = await menuServices.editMenu(e, initialValues.key);
+        console.log(result);
     };
     const handleCancel = () => {
         setIsModalOpen(false);
     };
-	useEffect(() => {
-		form.setFieldsValue(initialValues)
-	   }, [form, initialValues])
+    useEffect(() => {
+        form.setFieldsValue(initialValues);
+    }, [form, initialValues]);
     const openEditModal = (e) => {
-       
-		setInitialValues(e);  console.log(initialValues);
-		setIsModalOpen(true);
-		setSendRequest(true);
+        setIsAddNew(false);
+        setInitialValues(e);
+        setIsModalOpen(true);
+        setSendRequest(true);
+        const filteredArray = dataMenu.filter((obj) => obj.key !== e.key); // bỏ item có id cần sửa khỏi drop Pid
+        filteredArray.unshift({ key: 0, value: 0, label: 'Là thư mục gốc' });
+        setDataPids(filteredArray);
+        setDataMenu(dataMenu);
+    };
+    const openAddChildModal = (e) => {
+        console.log(e);
+        setIsAddNew(true);
+        setInitialValues({ key: e.key, label: e.label, name: '', order: '', pid: e.key, value: e.key });
+        setIsModalOpen(true);
+        setSendRequest(true);
+        dataMenu.unshift({ key: 0, value: 0, label: 'Là thư mục gốc' });
+        setDataPids(dataMenu);
+        setDataMenu(dataMenu);
     };
     const columns = [
+        {
+            title: 'ID',
+            dataIndex: 'key',
+            key: 'key',
+        },
         {
             title: 'Tên danh mục',
             dataIndex: 'name',
@@ -82,10 +108,31 @@ const QuanLyDanhMuc = () => {
                 <Space direction="vertical">
                     <Space wrap>
                         <Tooltip title="Sửa Danh mục">
-                            <Button shape="circle" icon={<EditOutlined />} onClick={() => openEditModal(e)} />
+                            <Button
+                                shape="circle"
+                                icon={<EditOutlined />}
+                                onClick={() => openEditModal(e)}
+                                size="small"
+                            />
                         </Tooltip>
-                        <ShowConfirmLockUser data={e} />
-                        <ShowConfirmResetPass type="icononly" data={e} />
+                        <Popconfirm
+                            placement="top"
+                            title="Bạn muốn xóa danh mục này không?"
+                            description="Hãy chắc chắn xóa Danh mục không có dữ liệu"
+                            onConfirm={() => confirmDelete(e)}
+                            okText="Xác nhận xóa"
+                            cancelText="Không"
+                        >
+                            <Button shape="circle" icon={<DeleteOutlined />} size="small" />
+                        </Popconfirm>
+                        <Tooltip title="Thêm danh mục con">
+                            <Button
+                                shape="circle"
+                                icon={<PlusOutlined />}
+                                onClick={() => openAddChildModal(e)}
+                                size="small"
+                            />
+                        </Tooltip>
                     </Space>
                 </Space>
             ),
@@ -95,19 +142,25 @@ const QuanLyDanhMuc = () => {
     // const { isLoading, error, data } = useQuery('repoData', () =>
     //     fetch('http://localhost:4000/menus').then((res) => res.json()),
     // );
-    // const updatedData = data?.map((itemdata) => ({ ...itemdata, key: itemdata.id })) | [];
 
-    // const dataPid = data?.map(({ id, name }) => ({
-    // 	value: id,
-    // 	label: name,
-    // }));
-
-    const onCreate = (values) => onFinish(values);
     async function createPost(data) {
         const response = await axios.post('http://localhost:4000/menus', data);
         console.log(response.data);
     }
-
+    const confirmDelete = (e) => {
+        console.log(e);
+        message.info(`Xóa thành công danh mục ${e.name}.`);
+        deleteMenuItem(e.key);
+    };
+    async function deleteMenuItem(id) {
+        await axios.delete(`http://localhost:4000/menus/${id}`);
+        setSendRequest(true);
+    }
+    const addNewMenu = () => {
+        setInitialValues({ key: '', label: '', name: '', order: '', pid: 0, value: '' });
+        setIsModalOpen(true);
+        setIsAddNew(true);
+    };
     return (
         <>
             {contextHolder}
@@ -115,18 +168,24 @@ const QuanLyDanhMuc = () => {
                 <Col span={24}>
                     <Row gutter={[16, 16]}>
                         <Col span={24}>
-                            <Button type="primary" icon={<PlusCircleOutlined />} onClick={showModal}>
+                            <Button type="primary" icon={<PlusCircleOutlined />} onClick={addNewMenu}>
                                 Thêm mới danh mục
                             </Button>
                         </Col>
                         <Col span={24}>
-                            <Table columns={columns} dataSource={dataMenu} pagination={{ position: 'bottomRight' }} />
+                            <Table
+                                columns={columns}
+                                dataSource={dataMenu}
+                                pagination={false}
+                                size="small"
+                                rowClassName={(record, index) => (record.pid === 0 ? 'green' : null)}
+                            />
                         </Col>
                     </Row>
                 </Col>
             </Row>
             <Modal
-				forceRender 
+                forceRender
                 open={isModalOpen}
                 maskClosable={true}
                 onOk={() => {
@@ -141,7 +200,7 @@ const QuanLyDanhMuc = () => {
                 }}
                 onCancel={handleCancel}
                 okText="Lưu lại"
-                title="Thêm mới lý do từ chối duyệt"
+                title={`${isAddNew ? 'Thêm' : 'Sửa'} danh mục`}
             >
                 <Row gutter={[16, 16]} style={{ marginTop: 32 }}>
                     <Col span={24}>
@@ -161,7 +220,7 @@ const QuanLyDanhMuc = () => {
                                 <Input />
                             </Form.Item>
                             <Form.Item label="Thư mục cha" name="pid" required={true}>
-                                <Select showSearch allowClear options={dataMenu} />
+                                <Select showSearch allowClear options={dataPids} />
                             </Form.Item>
                         </Form>
                     </Col>
