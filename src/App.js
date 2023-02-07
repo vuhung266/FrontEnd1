@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { publicRoutes } from '~/routes';
 import DefaultLayout from '~/layouts';
 
-function App () { console.log(process.env.PUBLIC_URL)
+function App () {
   return (
     <Router basename={process.env.BASE_URL}>
       <div className="App">

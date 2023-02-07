@@ -7,6 +7,7 @@ import ShowConfirmLockUser from './LockUser';
 import { useQuery, useMutation } from 'react-query';
 import * as menuServices from '~/services/menuService';
 import axios from 'axios';
+import TreeMenu from './TreeMenu'
 const QuanLyDanhMuc = () => {
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,9 +18,9 @@ const QuanLyDanhMuc = () => {
     const [dataMenu, setDataMenu] = useState([]);
     const [dataPids, setDataPids] = useState([]);
     const [initialValues, setInitialValues] = useState([]);
-    const [sortedArray, setSortedArray] = useState([]);
+    // const [services, setServices] = useState([]);
 
-	const [items, setItems] = useState([])
+    const [items, setItems] = useState([]);
 
     useEffect(() => {
         if (sendRequest) {
@@ -27,7 +28,9 @@ const QuanLyDanhMuc = () => {
         }
         const fetchApi = async () => {
             const result = await menuServices.getMenu();
+            // setServices(result);
             const resultArray = result.map((elm) => ({
+                id: elm.id,
                 key: elm.id,
                 value: elm.id,
                 label: elm.name,
@@ -39,6 +42,45 @@ const QuanLyDanhMuc = () => {
         };
         fetchApi();
     }, [sendRequest]);
+
+    function convertToNestedArray(data) {
+        const result = [];
+        const map = {};
+
+        data.forEach((item) => {
+            map[item.id] = item;
+            item.children = [];
+        });
+
+        data.forEach((item) => {
+            const parent = map[item.pid];
+            if (parent) {
+                parent.children.push(item);
+            } else {
+                result.push(item);
+            }
+        });
+
+        return result;
+    }
+
+    const nestedData = convertToNestedArray(dataMenu);
+
+    function createTreeMenu(nestedData) {
+        const ul = document.createElement('ul');
+        nestedData.forEach((item) => {
+            const li = document.createElement('li');
+            li.textContent = item.name;
+            if (item.children.length > 0) {
+                li.appendChild(createTreeMenu(item.children));
+            }
+            ul.appendChild(li);
+        });
+        return ul;
+    }
+	const treeMenu = createTreeMenu(nestedData);
+    
+    console.log(treeMenu);
 
     const onCreate = (values) => {
         if (isAddNew) {
@@ -164,6 +206,7 @@ const QuanLyDanhMuc = () => {
     return (
         <>
             {contextHolder}
+            <TreeMenu nestedData= {nestedData} />
             <Row gutter={[16, 32]}>
                 <Col span={24}>
                     <Row gutter={[16, 16]}>
