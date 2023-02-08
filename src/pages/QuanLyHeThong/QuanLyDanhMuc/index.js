@@ -2,15 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Row, Col, Space, Table, Tooltip, Select, Modal, message, Form, Popconfirm } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import ShowConfirmResetPass from './ResetPass';
-import ShowConfirmLockUser from './LockUser';
 import { useQuery, useMutation } from 'react-query';
 import * as menuServices from '~/services/menuService';
 import axios from 'axios';
-import TreeMenu from './TreeMenu'
+import TreeMenu from './TreeMenu';
 const QuanLyDanhMuc = () => {
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModalHDSDOpen, setIsModalHDSDOpen] = useState(false);
     const [messageApi, contextHolder] = message.useMessage();
     const [form] = Form.useForm();
     const [isAddNew, setIsAddNew] = useState(false);
@@ -18,6 +17,7 @@ const QuanLyDanhMuc = () => {
     const [dataMenu, setDataMenu] = useState([]);
     const [dataPids, setDataPids] = useState([]);
     const [initialValues, setInitialValues] = useState([]);
+    const [initialValuesHDSD, setInitialValues] = useState([]);
     // const [services, setServices] = useState([]);
 
     const [items, setItems] = useState([]);
@@ -64,23 +64,23 @@ const QuanLyDanhMuc = () => {
         return result;
     }
 
-    const nestedData = convertToNestedArray(dataMenu);
+    const nestedData = convertToNestedArray(dataMenu); //console.log(nestedData)
 
-    function createTreeMenu(nestedData) {
-        const ul = document.createElement('ul');
-        nestedData.forEach((item) => {
-            const li = document.createElement('li');
-            li.textContent = item.name;
-            if (item.children.length > 0) {
-                li.appendChild(createTreeMenu(item.children));
-            }
-            ul.appendChild(li);
-        });
-        return ul;
-    }
-	const treeMenu = createTreeMenu(nestedData);
-    
-    console.log(treeMenu);
+    // function createTreeMenu(nestedData) {
+    //     const ul = document.createElement('ul');
+    //     nestedData.forEach((item) => {
+    //         const li = document.createElement('li');
+    //         li.textContent = item.name;
+    //         if (item.children.length > 0) {
+    //             li.appendChild(createTreeMenu(item.children));
+    //         }
+    //         ul.appendChild(li);
+    //     });
+    //     return ul;
+    // }
+    // const treeMenu = createTreeMenu(nestedData);
+
+    // console.log(treeMenu);
 
     const onCreate = (values) => {
         if (isAddNew) {
@@ -123,7 +123,20 @@ const QuanLyDanhMuc = () => {
         setDataPids(dataMenu);
         setDataMenu(dataMenu);
     };
+    const openAddHDSDModal = (e) => {
+        console.log(e);
+        setInitialValues({ key: e.key, label: e.label, name: '', order: '', pid: e.key, value: e.key });
+        setIsModalHDSDOpen(true);
+        setSendRequest(true);
+        setDataPids(dataMenu);
+        setDataMenu(dataMenu);
+    };
     const columns = [
+        {
+            title: 'Thứ tự',
+            dataIndex: 'order',
+            key: 'order',
+        },
         {
             title: 'ID',
             dataIndex: 'key',
@@ -139,11 +152,7 @@ const QuanLyDanhMuc = () => {
             dataIndex: 'pid',
             key: 'pid',
         },
-        {
-            title: 'Thứ tự',
-            dataIndex: 'order',
-            key: 'order',
-        },
+
         {
             title: `Action`,
             render: (e) => (
@@ -175,6 +184,19 @@ const QuanLyDanhMuc = () => {
                                 size="small"
                             />
                         </Tooltip>
+                        {e.children.length === 0 ? (
+                            <Tooltip title="Nhập các bước HDSD">
+                                <Button
+									type="primary"
+                                    shape="circle"
+                                    icon={<PlusOutlined />}
+                                    onClick={() => openAddChildModal(e)}
+                                    size="small"
+                                />
+                            </Tooltip>
+                        ) : (
+                            ''
+                        )}
                     </Space>
                 </Space>
             ),
@@ -206,7 +228,7 @@ const QuanLyDanhMuc = () => {
     return (
         <>
             {contextHolder}
-            <TreeMenu nestedData= {nestedData} />
+            {/* <TreeMenu nestedData= {nestedData} /> */}
             <Row gutter={[16, 32]}>
                 <Col span={24}>
                     <Row gutter={[16, 16]}>
@@ -218,7 +240,7 @@ const QuanLyDanhMuc = () => {
                         <Col span={24}>
                             <Table
                                 columns={columns}
-                                dataSource={dataMenu}
+                                dataSource={nestedData}
                                 pagination={false}
                                 size="small"
                                 rowClassName={(record, index) => (record.pid === 0 ? 'green' : null)}
@@ -244,6 +266,48 @@ const QuanLyDanhMuc = () => {
                 onCancel={handleCancel}
                 okText="Lưu lại"
                 title={`${isAddNew ? 'Thêm' : 'Sửa'} danh mục`}
+            >
+                <Row gutter={[16, 16]} style={{ marginTop: 32 }}>
+                    <Col span={24}>
+                        <Form
+                            form={form}
+                            layout="vertical"
+                            name="form_in_modal"
+                            initialValues={initialValues}
+                            labelCol={{ span: 8 }}
+                            wrapperCol={{ span: 16 }}
+                            labelAlign="left"
+                        >
+                            <Form.Item label="Tên danh mục" name="name" required={true}>
+                                <Input />
+                            </Form.Item>
+                            <Form.Item label="Thứ tự" name="order" required={true}>
+                                <Input />
+                            </Form.Item>
+                            <Form.Item label="Thư mục cha" name="pid" required={true}>
+                                <Select showSearch allowClear options={dataPids} />
+                            </Form.Item>
+                        </Form>
+                    </Col>
+                </Row>
+            </Modal>
+            <Modal
+                forceRender
+                open={isModalHDSDOpen}
+                maskClosable={true}
+                onOk={() => {
+                    form.validateFields()
+                        .then((values) => {
+                            form.resetFields();
+                            onCreate(values);
+                        })
+                        .catch((info) => {
+                            console.log('Validate Failed:', info);
+                        });
+                }}
+                onCancel={handleCancel}
+                okText="Lưu lại"
+                title={`Chi tiết ${isAddNew}`}
             >
                 <Row gutter={[16, 16]} style={{ marginTop: 32 }}>
                     <Col span={24}>
