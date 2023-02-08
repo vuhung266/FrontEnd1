@@ -34,12 +34,12 @@ const defaultMenus = {
                     hideInMenu: true,
                 },
                 {
-                    path: 'quan-ly-nguoi-dung',
-                    name: 'Quản lý người dùng',
+                    path: 'chi-tiet-hdsd',
+                    name: 'Chi tiết HDSD',
                 },
                 {
-                    path: 'quan-ly-nguoi-dung/chi-tiet/:id',
-                    name: 'Chi tiết người dùng',
+                    path: 'chi-tiet-hdsd/chi-tiet/:id',
+                    name: 'Chi tiết HDSD',
                     hideInMenu: true,
                 },
             ],

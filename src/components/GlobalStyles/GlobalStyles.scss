@@ -143,3 +143,9 @@ tr.green {background-color: #eee; font-weight: 600;}
 .mainmenu ul li {
 	padding-left: 10px;
 }
+.mainmenu button {
+	cursor: pointer;
+}
+.mainmenu button:hover {
+	color:#005dd6
+}
