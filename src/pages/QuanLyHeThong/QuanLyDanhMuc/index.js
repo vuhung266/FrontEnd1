@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Row, Col, Space, Table, Tooltip, Select, Modal, message, Form, Popconfirm } from 'antd';
+import { Button, Input, Row, Col, Space, Table, Tooltip, Select, Modal, message, Form, Popconfirm, Card } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import { useQuery, useMutation } from 'react-query';
+import { useQuery } from 'react-query';
 import * as menuServices from '~/services/menuService';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import 'swiper/css';
 import axios from 'axios';
-import TreeMenu from './TreeMenu';
+const { TextArea } = Input;
+const { Meta } = Card;
 const QuanLyDanhMuc = () => {
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -16,12 +19,11 @@ const QuanLyDanhMuc = () => {
     const [sendRequest, setSendRequest] = useState(false);
     const [dataMenu, setDataMenu] = useState([]);
     const [dataPids, setDataPids] = useState([]);
+    const [dataSlideHDSD, setDataSlideHDSD] = useState([]);
     const [initialValues, setInitialValues] = useState([]);
-    const [initialValuesHDSD, setInitialValues] = useState([]);
-    // const [services, setServices] = useState([]);
+    const [initialValuesHDSD, setinitialValuesHDSD] = useState([]);
 
-    const [items, setItems] = useState([]);
-
+    const { data, refetch  } = useQuery('HDSDData', () => fetch('http://localhost:4000/detail_hdsd').then((res) => res.json()));
     useEffect(() => {
         if (sendRequest) {
             setSendRequest(false);
@@ -43,16 +45,16 @@ const QuanLyDanhMuc = () => {
         fetchApi();
     }, [sendRequest]);
 
-    function convertToNestedArray(data) {
+    function convertToNestedArray(dataMenu) {
         const result = [];
         const map = {};
 
-        data.forEach((item) => {
+        dataMenu.forEach((item) => {
             map[item.id] = item;
             item.children = [];
         });
 
-        data.forEach((item) => {
+        dataMenu.forEach((item) => {
             const parent = map[item.pid];
             if (parent) {
                 parent.children.push(item);
@@ -66,22 +68,6 @@ const QuanLyDanhMuc = () => {
 
     const nestedData = convertToNestedArray(dataMenu); //console.log(nestedData)
 
-    // function createTreeMenu(nestedData) {
-    //     const ul = document.createElement('ul');
-    //     nestedData.forEach((item) => {
-    //         const li = document.createElement('li');
-    //         li.textContent = item.name;
-    //         if (item.children.length > 0) {
-    //             li.appendChild(createTreeMenu(item.children));
-    //         }
-    //         ul.appendChild(li);
-    //     });
-    //     return ul;
-    // }
-    // const treeMenu = createTreeMenu(nestedData);
-
-    // console.log(treeMenu);
-
     const onCreate = (values) => {
         if (isAddNew) {
             createPost(values);
@@ -92,14 +78,28 @@ const QuanLyDanhMuc = () => {
         setSendRequest(true);
         setIsModalOpen(false);
     };
-
+    async function createPost(data) {
+        const response = await axios.post('http://localhost:4000/menus', data);
+        console.log(response.data);
+    }
     const sendEditData = async (e) => {
         const result = await menuServices.editMenu(e, initialValues.key);
         console.log(result);
     };
+    const addHDSD = (values) => {
+        postHDSD(values);
+		refetch()
+		let dataFromDetailHDSD = GetAllItemsbyPid(values.pid);
+		setDataSlideHDSD(dataFromDetailHDSD);
+    };
+    async function postHDSD(data) {
+        await axios.post('http://localhost:4000/detail_hdsd', data);
+    }
     const handleCancel = () => {
         setIsModalOpen(false);
+        setIsModalHDSDOpen(false);
     };
+
     useEffect(() => {
         form.setFieldsValue(initialValues);
     }, [form, initialValues]);
@@ -124,12 +124,22 @@ const QuanLyDanhMuc = () => {
         setDataMenu(dataMenu);
     };
     const openAddHDSDModal = (e) => {
-        console.log(e);
-        setInitialValues({ key: e.key, label: e.label, name: '', order: '', pid: e.key, value: e.key });
+        let dataFromDetailHDSD = GetAllItemsbyPid(e.id);
+		setDataSlideHDSD(dataFromDetailHDSD);
+			console.log('đã set data mới cho vào slide:', dataFromDetailHDSD)
+        setinitialValuesHDSD(e);
         setIsModalHDSDOpen(true);
-        setSendRequest(true);
-        setDataPids(dataMenu);
-        setDataMenu(dataMenu);
+    };
+
+    const GetAllItemsbyPid = (pid) => {
+        if (data) {
+            let filteredArr = data.filter(function (item) {
+                return item.pid === pid;
+            });
+			return filteredArr
+        } else {
+            return [];
+        }
     };
     const columns = [
         {
@@ -187,10 +197,10 @@ const QuanLyDanhMuc = () => {
                         {e.children.length === 0 ? (
                             <Tooltip title="Nhập các bước HDSD">
                                 <Button
-									type="primary"
+                                    type="primary"
                                     shape="circle"
                                     icon={<PlusOutlined />}
-                                    onClick={() => openAddChildModal(e)}
+                                    onClick={() => openAddHDSDModal(e)}
                                     size="small"
                                 />
                             </Tooltip>
@@ -203,14 +213,6 @@ const QuanLyDanhMuc = () => {
         },
     ];
 
-    // const { isLoading, error, data } = useQuery('repoData', () =>
-    //     fetch('http://localhost:4000/menus').then((res) => res.json()),
-    // );
-
-    async function createPost(data) {
-        const response = await axios.post('http://localhost:4000/menus', data);
-        console.log(response.data);
-    }
     const confirmDelete = (e) => {
         console.log(e);
         message.info(`Xóa thành công danh mục ${e.name}.`);
@@ -271,7 +273,7 @@ const QuanLyDanhMuc = () => {
                     <Col span={24}>
                         <Form
                             form={form}
-                            layout="vertical"
+                            layout=""
                             name="form_in_modal"
                             initialValues={initialValues}
                             labelCol={{ span: 8 }}
@@ -293,13 +295,14 @@ const QuanLyDanhMuc = () => {
             </Modal>
             <Modal
                 forceRender
+                width={1000}
                 open={isModalHDSDOpen}
                 maskClosable={true}
                 onOk={() => {
                     form.validateFields()
                         .then((values) => {
                             form.resetFields();
-                            onCreate(values);
+                            addHDSD(values);
                         })
                         .catch((info) => {
                             console.log('Validate Failed:', info);
@@ -307,27 +310,58 @@ const QuanLyDanhMuc = () => {
                 }}
                 onCancel={handleCancel}
                 okText="Lưu lại"
-                title={`Chi tiết ${isAddNew}`}
+                title={`Chi tiết ${initialValuesHDSD.name}`}
             >
+                <Row gutter={[16, 16]} style={{ marginTop: 32 }}>
+                    <Col span={24}>
+                        <Swiper
+							pagination={{ clickable: true }}
+                            spaceBetween={30}
+                            slidesPerView={3}
+                            onSwiper={(swiper) => console.log(swiper)}
+                        >
+                            {dataSlideHDSD.map((e) => (
+                                <SwiperSlide key={e.id}>
+									Step: {e.step}
+                                    <Card
+                                        hoverable
+                                        style={{ width: 240 }}
+                                        cover={
+                                            <img
+                                                alt="example"
+                                                src="https://os.alipayobjects.com/rmsportal/QBnOOoLaAfKPirc.png"
+                                            />
+                                        }
+                                    >
+                                        <Meta title={e.name} description={e.desc} />
+                                    </Card>
+                                </SwiperSlide>
+                            ))}
+                        </Swiper>
+                    </Col>
+                </Row>
                 <Row gutter={[16, 16]} style={{ marginTop: 32 }}>
                     <Col span={24}>
                         <Form
                             form={form}
-                            layout="vertical"
+                            layout=""
                             name="form_in_modal"
                             initialValues={initialValues}
                             labelCol={{ span: 8 }}
                             wrapperCol={{ span: 16 }}
                             labelAlign="left"
                         >
-                            <Form.Item label="Tên danh mục" name="name" required={true}>
+                            <Form.Item label="Step" name="step" required={true}>
                                 <Input />
                             </Form.Item>
-                            <Form.Item label="Thứ tự" name="order" required={true}>
+                            <Form.Item label="Link ảnh" name="img" required={true}>
                                 <Input />
                             </Form.Item>
-                            <Form.Item label="Thư mục cha" name="pid" required={true}>
-                                <Select showSearch allowClear options={dataPids} />
+                            <Form.Item label="Tên" name="name" required={true}>
+                                <Input />
+                            </Form.Item>
+                            <Form.Item label="Mô tả" name="desc" required={true}>
+                                <TextArea />
                             </Form.Item>
                         </Form>
                     </Col>
