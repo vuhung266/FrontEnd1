@@ -1,29 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button, Input, Row, Col, Space, Table, Tooltip, Select, Modal, message, Form, Popconfirm, Card } from 'antd';
+import { Button, Input, Row, Col, Space, Table, Tooltip, Select, Modal, message, Form, Popconfirm } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { useQuery } from 'react-query';
 import * as menuServices from '~/services/menuService';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import 'swiper/css';
+import SwiperHDSD from './SwiperHDSD';
 import axios from 'axios';
 const { TextArea } = Input;
-const { Meta } = Card;
+
 const QuanLyDanhMuc = () => {
-    const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isModalHDSDOpen, setIsModalHDSDOpen] = useState(false);
     const [messageApi, contextHolder] = message.useMessage();
     const [form] = Form.useForm();
+    const [formHDSD] = Form.useForm();
     const [isAddNew, setIsAddNew] = useState(false);
     const [sendRequest, setSendRequest] = useState(false);
     const [dataMenu, setDataMenu] = useState([]);
     const [dataPids, setDataPids] = useState([]);
+    const [pidHDSD, setPidHDSD] = useState([]);
     const [dataSlideHDSD, setDataSlideHDSD] = useState([]);
     const [initialValues, setInitialValues] = useState([]);
     const [initialValuesHDSD, setinitialValuesHDSD] = useState([]);
 
-    const { data, refetch  } = useQuery('HDSDData', () => fetch('http://localhost:4000/detail_hdsd').then((res) => res.json()));
+    const { data, refetch } = useQuery(
+        'HDSDData',
+        () => fetch('http://localhost:4000/detail_hdsd').then((res) => res.json()),
+        { refetchOnWindowFocus: false },
+    );
     useEffect(() => {
         if (sendRequest) {
             setSendRequest(false);
@@ -86,11 +89,14 @@ const QuanLyDanhMuc = () => {
         const result = await menuServices.editMenu(e, initialValues.key);
         console.log(result);
     };
-    const addHDSD = (values) => {
-        postHDSD(values);
-		refetch()
-		let dataFromDetailHDSD = GetAllItemsbyPid(values.pid);
-		setDataSlideHDSD(dataFromDetailHDSD);
+    const addHDSD = async (valuesForm) => {
+		valuesForm.pid = pidHDSD
+        console.log(valuesForm);
+        //postHDSD(valuesForm);
+		await axios.post('http://localhost:4000/detail_hdsd', valuesForm);
+        refetch();
+        let dataFromDetailHDSD = GetAllItemsbyPid(valuesForm.pid);
+        setDataSlideHDSD(dataFromDetailHDSD);
     };
     async function postHDSD(data) {
         await axios.post('http://localhost:4000/detail_hdsd', data);
@@ -99,7 +105,13 @@ const QuanLyDanhMuc = () => {
         setIsModalOpen(false);
         setIsModalHDSDOpen(false);
     };
-
+	const confirmDeleteHDSD = (e) => {
+		
+		let dataFromDetailHDSD = GetAllItemsbyPid(e.pid);
+        setDataSlideHDSD(dataFromDetailHDSD);
+		refetch()
+		console.log(dataFromDetailHDSD)
+	}
     useEffect(() => {
         form.setFieldsValue(initialValues);
     }, [form, initialValues]);
@@ -125,9 +137,11 @@ const QuanLyDanhMuc = () => {
     };
     const openAddHDSDModal = (e) => {
         let dataFromDetailHDSD = GetAllItemsbyPid(e.id);
-		setDataSlideHDSD(dataFromDetailHDSD);
-			console.log('đã set data mới cho vào slide:', dataFromDetailHDSD)
-        setinitialValuesHDSD(e);
+        if (dataFromDetailHDSD.length != 0) {
+            setDataSlideHDSD(dataFromDetailHDSD);
+            console.log('đã set data mới cho vào slide:', dataFromDetailHDSD);
+        }
+        setPidHDSD(e.id);
         setIsModalHDSDOpen(true);
     };
 
@@ -136,7 +150,7 @@ const QuanLyDanhMuc = () => {
             let filteredArr = data.filter(function (item) {
                 return item.pid === pid;
             });
-			return filteredArr
+            return filteredArr;
         } else {
             return [];
         }
@@ -299,7 +313,7 @@ const QuanLyDanhMuc = () => {
                 open={isModalHDSDOpen}
                 maskClosable={true}
                 onOk={() => {
-                    form.validateFields()
+                    formHDSD.validateFields()
                         .then((values) => {
                             form.resetFields();
                             addHDSD(values);
@@ -312,41 +326,14 @@ const QuanLyDanhMuc = () => {
                 okText="Lưu lại"
                 title={`Chi tiết ${initialValuesHDSD.name}`}
             >
-                <Row gutter={[16, 16]} style={{ marginTop: 32 }}>
-                    <Col span={24}>
-                        <Swiper
-							pagination={{ clickable: true }}
-                            spaceBetween={30}
-                            slidesPerView={3}
-                            onSwiper={(swiper) => console.log(swiper)}
-                        >
-                            {dataSlideHDSD.map((e) => (
-                                <SwiperSlide key={e.id}>
-									Step: {e.step}
-                                    <Card
-                                        hoverable
-                                        style={{ width: 240 }}
-                                        cover={
-                                            <img
-                                                alt="example"
-                                                src="https://os.alipayobjects.com/rmsportal/QBnOOoLaAfKPirc.png"
-                                            />
-                                        }
-                                    >
-                                        <Meta title={e.name} description={e.desc} />
-                                    </Card>
-                                </SwiperSlide>
-                            ))}
-                        </Swiper>
-                    </Col>
-                </Row>
+                <SwiperHDSD dataSlideHDSD={dataSlideHDSD} actionDelete={confirmDeleteHDSD} />
                 <Row gutter={[16, 16]} style={{ marginTop: 32 }}>
                     <Col span={24}>
                         <Form
-                            form={form}
+                            form={formHDSD}
                             layout=""
-                            name="form_in_modal"
-                            initialValues={initialValues}
+                            name="form_HDSD"
+                            initialValues={initialValuesHDSD}
                             labelCol={{ span: 8 }}
                             wrapperCol={{ span: 16 }}
                             labelAlign="left"

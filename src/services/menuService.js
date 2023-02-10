@@ -26,3 +26,19 @@ export const editMenu = async (data, id) => {
         console.log(error);
     }
 };
+export const deleteItemHDSD = async (id) => {  console.log(id)
+    try {
+        const res = await httpRequest.deleteResource(`http://localhost:4000/detail_hdsd/${id}`);
+        return res;
+    } catch (error) {
+        console.log(error);
+    }
+};
+export const addStepHDSD = async (data) => { 
+    try {
+        const res = await httpRequest.post(`http://localhost:4000/detail_hdsd`, data);
+        return res;
+    } catch (error) {
+        console.log(error);
+    }
+};

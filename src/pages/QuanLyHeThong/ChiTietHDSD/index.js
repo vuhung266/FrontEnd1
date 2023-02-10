@@ -1,13 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Row, Col, Space, Table, Tooltip, Select, Modal, message, Form, Popconfirm } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import ShowConfirmResetPass from './ResetPass';
-import ShowConfirmLockUser from './LockUser';
-import { useQuery, useMutation } from 'react-query';
+import { Input, Row, Col, Select, Modal, message, Form } from 'antd';
 import * as menuServices from '~/services/menuService';
 import axios from 'axios';
-import TreeMenu from './TreeMenu'
+import TreeMenu from './TreeMenu';
 const QuanLyDanhMuc = () => {
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -78,8 +74,8 @@ const QuanLyDanhMuc = () => {
     //     });
     //     return ul;
     // }
-	// const treeMenu = createTreeMenu(nestedData);
-    
+    // const treeMenu = createTreeMenu(nestedData);
+
     // console.log(treeMenu);
 
     const onCreate = (values) => {
@@ -146,27 +142,27 @@ const QuanLyDanhMuc = () => {
         setIsModalOpen(true);
         setIsAddNew(true);
     };
-	function handleClick(data) {
-		console.log(data);
-		setIsModalOpen(true);
-		setInitialValues(data);
-	}
+    function handleClick(data) {
+        console.log(data);
+        setIsModalOpen(true);
+        setInitialValues(data);
+    }
     return (
         <>
             {contextHolder}
-            
+
             <Row gutter={[16, 32]}>
                 <Col span={24}>
                     <Row gutter={[16, 16]}>
                         <Col span={24}>
-							<TreeMenu nestedData={nestedData} onClick={handleClick} />
+                            <TreeMenu nestedData={nestedData} onClick={handleClick} />
                         </Col>
                     </Row>
                 </Col>
             </Row>
             <Modal
                 forceRender
-				width={1000}
+                width={1000}
                 open={isModalOpen}
                 maskClosable={true}
                 onOk={() => {
