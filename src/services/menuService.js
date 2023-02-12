@@ -10,7 +10,7 @@ export const getAllMenu = async () => {
         console.log(error);
     }
 };
-export const getMenu = async (data) => {
+export const getMenu = async () => {
     try {
         const res = await httpRequest.get(`http://localhost:4000/menus`);
         return res;
